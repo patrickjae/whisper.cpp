@@ -8,6 +8,7 @@
 #include <string>
 #include <thread>
 #include <vector>
+#include <iostream>
 
 // Terminal color map. 10 colors grouped in ranges [0.0, 0.1, ..., 0.9]
 // Lowest is red, middle is yellow, highest is green.
@@ -283,34 +284,22 @@ void whisper_print_segment_callback(struct whisper_context * ctx, struct whisper
     }
 }
 
-bool output_txt(struct whisper_context * ctx, const char * fname) {
-    std::ofstream fout(fname);
-    if (!fout.is_open()) {
-        fprintf(stderr, "%s: failed to open '%s' for writing\n", __func__, fname);
-        return false;
-    }
-
-    fprintf(stderr, "%s: saving output to '%s'\n", __func__, fname);
+bool output_txt(struct whisper_context * ctx) {
+    // std::ofstream fout(fname);
 
     const int n_segments = whisper_full_n_segments(ctx);
     for (int i = 0; i < n_segments; ++i) {
         const char * text = whisper_full_get_segment_text(ctx, i);
-        fout << text << "\n";
+        std::cout << text << "\n";
     }
 
     return true;
 }
 
-bool output_vtt(struct whisper_context * ctx, const char * fname) {
-    std::ofstream fout(fname);
-    if (!fout.is_open()) {
-        fprintf(stderr, "%s: failed to open '%s' for writing\n", __func__, fname);
-        return false;
-    }
+bool output_vtt(struct whisper_context * ctx) {
+    // std::ofstream fout(fname);
 
-    fprintf(stderr, "%s: saving output to '%s'\n", __func__, fname);
-
-    fout << "WEBVTT\n\n";
+    std::cout << "WEBVTT\n\n";
 
     const int n_segments = whisper_full_n_segments(ctx);
     for (int i = 0; i < n_segments; ++i) {
@@ -318,21 +307,15 @@ bool output_vtt(struct whisper_context * ctx, const char * fname) {
         const int64_t t0 = whisper_full_get_segment_t0(ctx, i);
         const int64_t t1 = whisper_full_get_segment_t1(ctx, i);
 
-        fout << to_timestamp(t0) << " --> " << to_timestamp(t1) << "\n";
-        fout << text << "\n\n";
+        std::cout << to_timestamp(t0) << " --> " << to_timestamp(t1) << "\n";
+        std::cout << text << "\n\n";
     }
 
     return true;
 }
 
-bool output_srt(struct whisper_context * ctx, const char * fname, const whisper_params & params) {
-    std::ofstream fout(fname);
-    if (!fout.is_open()) {
-        fprintf(stderr, "%s: failed to open '%s' for writing\n", __func__, fname);
-        return false;
-    }
-
-    fprintf(stderr, "%s: saving output to '%s'\n", __func__, fname);
+bool output_srt(struct whisper_context * ctx, const whisper_params & params) {
+    // std::ofstream fout(fname);
 
     const int n_segments = whisper_full_n_segments(ctx);
     for (int i = 0; i < n_segments; ++i) {
@@ -340,63 +323,63 @@ bool output_srt(struct whisper_context * ctx, const char * fname, const whisper_
         const int64_t t0 = whisper_full_get_segment_t0(ctx, i);
         const int64_t t1 = whisper_full_get_segment_t1(ctx, i);
 
-        fout << i + 1 + params.offset_n << "\n";
-        fout << to_timestamp(t0, true) << " --> " << to_timestamp(t1, true) << "\n";
-        fout << text << "\n\n";
+        std::cout << i + 1 + params.offset_n << "\n";
+        std::cout << to_timestamp(t0, true) << " --> " << to_timestamp(t1, true) << "\n";
+        std::cout << text << "\n\n";
     }
 
     return true;
 }
 
-bool output_csv(struct whisper_context * ctx, const char * fname) {
-    std::ofstream fout(fname);
-    if (!fout.is_open()) {
-        fprintf(stderr, "%s: failed to open '%s' for writing\n", __func__, fname);
-        return false;
-    }
+bool output_csv(struct whisper_context * ctx) {
+    // std::ofstream fout(fname);
+    // if (!fout.is_open()) {
+    //     fprintf(stderr, "%s: failed to open '%s' for writing\n", __func__, fname);
+    //     return false;
+    // }
 
-    fprintf(stderr, "%s: saving output to '%s'\n", __func__, fname);
+    // fprintf(stderr, "%s: saving output to '%s'\n", __func__, fname);
 
     const int n_segments = whisper_full_n_segments(ctx);
-    fout << "start,end,text\n";
+    std::cout << "start,end,text\n";
     for (int i = 0; i < n_segments; ++i) {
         const char * text = whisper_full_get_segment_text(ctx, i);
         const int64_t t0 = whisper_full_get_segment_t0(ctx, i);
         const int64_t t1 = whisper_full_get_segment_t1(ctx, i);
 
         //need to multiply times returned from whisper_full_get_segment_t{0,1}() by 10 to get milliseconds.
-        fout << 10 * t0 << "," << 10 * t1 << ",\"" << text    << "\"\n";
+        std::cout << 10 * t0 << "," << 10 * t1 << ",\"" << text    << "\"\n";
     }
 
     return true;
 }
 
-bool output_json(struct whisper_context * ctx, const char * fname, const whisper_params & params) {
-    std::ofstream fout(fname);
+bool output_json(struct whisper_context * ctx, const whisper_params & params) {
+    // std::ofstream fout(fname);
     int indent = 0;
 
     auto doindent = [&]() {
-        for (int i = 0; i < indent; i++) fout << "\t";
+        for (int i = 0; i < indent; i++) std::cout << "\t";
     };
 
     auto start_arr = [&](const char *name) {
         doindent();
-        fout << "\"" << name << "\": [\n";
+        std::cout << "\"" << name << "\": [\n";
         indent++;
     };
 
     auto end_arr = [&](bool end = false) {
         indent--;
         doindent();
-        fout << (end ? "]\n" : "},\n");
+        std::cout << (end ? "]\n" : "},\n");
     };
 
     auto start_obj = [&](const char *name = nullptr) {
         doindent();
         if (name) {
-            fout << "\"" << name << "\": {\n";
+            std::cout << "\"" << name << "\": {\n";
         } else {
-            fout << "{\n";
+            std::cout << "{\n";
         }
         indent++;
     };
@@ -404,41 +387,35 @@ bool output_json(struct whisper_context * ctx, const char * fname, const whisper
     auto end_obj = [&](bool end = false) {
         indent--;
         doindent();
-        fout << (end ? "}\n" : "},\n");
+        std::cout << (end ? "}\n" : "},\n");
     };
 
     auto start_value = [&](const char *name) {
         doindent();
-        fout << "\"" << name << "\": ";
+        std::cout << "\"" << name << "\": ";
     };
 
     auto value_s = [&](const char *name, const char *val, bool end = false) {
         start_value(name);
-        fout << "\"" << val << (end ? "\"\n" : "\",\n");
+        std::cout << "\"" << val << (end ? "\"\n" : "\",\n");
     };
 
     auto end_value = [&](bool end = false) {
-        fout << (end ? "\n" : ",\n");
+        std::cout << (end ? "\n" : ",\n");
     };
 
     auto value_i = [&](const char *name, const int64_t val, bool end = false) {
         start_value(name);
-        fout << val;
+        std::cout << val;
         end_value(end);
     };
 
     auto value_b = [&](const char *name, const bool val, bool end = false) {
         start_value(name);
-        fout << (val ? "true" : "false");
+        std::cout << (val ? "true" : "false");
         end_value(end);
     };
 
-    if (!fout.is_open()) {
-        fprintf(stderr, "%s: failed to open '%s' for writing\n", __func__, fname);
-        return false;
-    }
-
-    fprintf(stderr, "%s: saving output to '%s'\n", __func__, fname);
     start_obj();
         value_s("systeminfo", whisper_print_system_info());
         start_obj("model");
@@ -477,7 +454,7 @@ bool output_json(struct whisper_context * ctx, const char * fname, const whisper
                 const int64_t t1 = whisper_full_get_segment_t1(ctx, i);
 
                 start_obj();
-                    start_obj("timestanps");
+                    start_obj("timestamps");
                         value_s("from", to_timestamp(t0, true).c_str());
                         value_s("to", to_timestamp(t1, true).c_str(), true);
                     end_obj();
@@ -497,10 +474,8 @@ bool output_json(struct whisper_context * ctx, const char * fname, const whisper
 // karaoke video generation
 // outputs a bash script that uses ffmpeg to generate a video with the subtitles
 // TODO: font parameter adjustments
-bool output_wts(struct whisper_context * ctx, const char * fname, const char * fname_inp, const whisper_params & params, float t_sec) {
-    std::ofstream fout(fname);
-
-    fprintf(stderr, "%s: saving output to '%s'\n", __func__, fname);
+bool output_wts(struct whisper_context * ctx, const char * fname_inp, const whisper_params & params, float t_sec) {
+    // std::ofstream fout(fname);
 
     static const char * font = params.font_path.c_str();
 
@@ -510,10 +485,10 @@ bool output_wts(struct whisper_context * ctx, const char * fname, const char * f
         return false;
     }
 
-    fout << "#!/bin/bash" << "\n";
-    fout << "\n";
+    std::cout << "#!/bin/bash" << "\n";
+    std::cout << "\n";
 
-    fout << "ffmpeg -i " << fname_inp << " -f lavfi -i color=size=1200x120:duration=" << t_sec << ":rate=25:color=black -vf \"";
+    std::cout << "ffmpeg -i " << fname_inp << " -f lavfi -i color=size=1200x120:duration=" << t_sec << ":rate=25:color=black -vf \"";
 
     for (int i = 0; i < whisper_full_n_segments(ctx); i++) {
         const int64_t t0 = whisper_full_get_segment_t0(ctx, i);
@@ -527,11 +502,11 @@ bool output_wts(struct whisper_context * ctx, const char * fname, const char * f
         }
 
         if (i > 0) {
-            fout << ",";
+            std::cout << ",";
         }
 
         // background text
-        fout << "drawtext=fontfile='" << font << "':fontsize=24:fontcolor=gray:x=(w-text_w)/2:y=h/2:text='':enable='between(t," << t0/100.0 << "," << t0/100.0 << ")'";
+        std::cout << "drawtext=fontfile='" << font << "':fontsize=24:fontcolor=gray:x=(w-text_w)/2:y=h/2:text='':enable='between(t," << t0/100.0 << "," << t0/100.0 << ")'";
 
         bool is_first = true;
 
@@ -584,31 +559,43 @@ bool output_wts(struct whisper_context * ctx, const char * fname, const char * f
 
             if (is_first) {
                 // background text
-                fout << ",drawtext=fontfile='" << font << "':fontsize=24:fontcolor=gray:x=(w-text_w)/2:y=h/2:text='" << txt_bg << "':enable='between(t," << t0/100.0 << "," << t1/100.0 << ")'";
+                std::cout << ",drawtext=fontfile='" << font << "':fontsize=24:fontcolor=gray:x=(w-text_w)/2:y=h/2:text='" << txt_bg << "':enable='between(t," << t0/100.0 << "," << t1/100.0 << ")'";
                 is_first = false;
             }
 
             // foreground text
-            fout << ",drawtext=fontfile='" << font << "':fontsize=24:fontcolor=lightgreen:x=(w-text_w)/2+8:y=h/2:text='" << txt_fg << "':enable='between(t," << token.t0/100.0 << "," << token.t1/100.0 << ")'";
+            std::cout << ",drawtext=fontfile='" << font << "':fontsize=24:fontcolor=lightgreen:x=(w-text_w)/2+8:y=h/2:text='" << txt_fg << "':enable='between(t," << token.t0/100.0 << "," << token.t1/100.0 << ")'";
 
             // underline
-            fout << ",drawtext=fontfile='" << font << "':fontsize=24:fontcolor=lightgreen:x=(w-text_w)/2+8:y=h/2+16:text='" << txt_ul << "':enable='between(t," << token.t0/100.0 << "," << token.t1/100.0 << ")'";
+            std::cout << ",drawtext=fontfile='" << font << "':fontsize=24:fontcolor=lightgreen:x=(w-text_w)/2+8:y=h/2+16:text='" << txt_ul << "':enable='between(t," << token.t0/100.0 << "," << token.t1/100.0 << ")'";
         }
     }
 
-    fout << "\" -c:v libx264 -pix_fmt yuv420p -y " << fname_inp << ".mp4" << "\n";
+    std::cout << "\" -c:v libx264 -pix_fmt yuv420p -y " << fname_inp << ".mp4" << "\n";
 
-    fout << "\n\n";
-    fout << "echo \"Your video has been saved to " << fname_inp << ".mp4\"" << "\n";
-    fout << "\n";
-    fout << "echo \"  ffplay " << fname_inp << ".mp4\"\n";
-    fout << "\n";
+    std::cout << "\n\n";
+    std::cout << "echo \"Your video has been saved to " << fname_inp << ".mp4\"" << "\n";
+    std::cout << "\n";
+    std::cout << "echo \"  ffplay " << fname_inp << ".mp4\"\n";
+    std::cout << "\n";
 
-    fout.close();
+    // fout.close();
 
-    fprintf(stderr, "%s: run 'source %s' to generate karaoke video\n", __func__, fname);
+    // fprintf(stderr, "%s: run 'source %s' to generate karaoke video\n", __func__, fname);
 
     return true;
+}
+
+
+std::ofstream create_data_output_stream(const std::string filename, const std::string extension) {
+    const auto fname_ext = filename + "." + extension;
+    std::ofstream of(fname_ext.c_str());
+    if (!of.is_open()) {
+        fprintf(stderr, "%s: failed to open '%s' for writing\n", __func__, fname_ext.c_str());
+        // return false;
+    }
+    fprintf(stderr, "%s: saving output to '%s'\n", __func__, fname_ext.c_str());
+    return of;
 }
 
 int main(int argc, char ** argv) {
@@ -731,7 +718,7 @@ int main(int argc, char ** argv) {
             whisper_print_user_data user_data = { &params, &pcmf32s };
 
             // this callback is called on each new segment
-            if (!wparams.print_realtime) {
+            if (wparams.print_realtime) {
                 wparams.new_segment_callback           = whisper_print_segment_callback;
                 wparams.new_segment_callback_user_data = &user_data;
             }
@@ -758,42 +745,94 @@ int main(int argc, char ** argv) {
         // output stuff
         {
             printf("\n");
-
+            std::streambuf * cout_backup = std::cout.rdbuf();
+            std::ofstream of;
             // output to text file
             if (params.output_txt) {
-                const auto fname_txt = fname_out + ".txt";
-                output_txt(ctx, fname_txt.c_str());
+                if (fname_out != "-")
+                {
+                    of = create_data_output_stream(fname_out, "txt");
+                    std::cout.rdbuf(of.rdbuf());
+                }
+                output_txt(ctx);
+                if (fname_out != "-")
+                {
+                    of.close();
+                }
+                
             }
 
             // output to VTT file
             if (params.output_vtt) {
-                const auto fname_vtt = fname_out + ".vtt";
-                output_vtt(ctx, fname_vtt.c_str());
+                if (fname_out != "-")
+                {
+                    of = create_data_output_stream(fname_out, "vtt");
+                    std::cout.rdbuf(of.rdbuf());
+                }
+                output_vtt(ctx);
+                if (fname_out != "-")
+                {
+                    of.close();
+                }
             }
 
             // output to SRT file
             if (params.output_srt) {
-                const auto fname_srt = fname_out + ".srt";
-                output_srt(ctx, fname_srt.c_str(), params);
+                if (fname_out != "-")
+                {
+                    of = create_data_output_stream(fname_out, "srt");
+                    std::cout.rdbuf(of.rdbuf());
+                }
+                output_srt(ctx, params);
+                if (fname_out != "-")
+                {
+                    of.close();
+                }
             }
 
             // output to WTS file
             if (params.output_wts) {
-                const auto fname_wts = fname_out + ".wts";
-                output_wts(ctx, fname_wts.c_str(), fname_inp.c_str(), params, float(pcmf32.size() + 1000)/WHISPER_SAMPLE_RATE);
+                if (fname_out != "-")
+                {
+                    of = create_data_output_stream(fname_out, "wts");
+                    std::cout.rdbuf(of.rdbuf());
+                }
+                output_wts(ctx, fname_inp.c_str(), params, float(pcmf32.size() + 1000)/WHISPER_SAMPLE_RATE);
+                if (fname_out != "-")
+                {
+                    of.close();
+                }
             }
 
             // output to CSV file
             if (params.output_csv) {
-                const auto fname_csv = fname_out + ".csv";
-                output_csv(ctx, fname_csv.c_str());
+                if (fname_out != "-")
+                {
+                    of = create_data_output_stream(fname_out, "csv");
+                    std::cout.rdbuf(of.rdbuf());
+                }
+                output_csv(ctx);
+                if (fname_out != "-")
+                {
+                    of.close();
+                }
             }
 
             // output to JSON file
             if (params.output_jsn) {
-                const auto fname_jsn = fname_out + ".json";
-                output_json(ctx, fname_jsn.c_str(), params);
+                if (fname_out != "-")
+                {
+                    of = create_data_output_stream(fname_out, "json");
+                    std::cout.rdbuf(of.rdbuf());
+                }
+                output_json(ctx, params);
+                if (fname_out != "-")
+                {
+                    of.close();
+                }
             }
+            fflush(stdout);
+            std::cout.rdbuf(cout_backup);
         }
     }
 
